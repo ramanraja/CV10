@@ -89,6 +89,9 @@ for face in faces:
     face_box = to_world_coords (img.size, face['BoundingBox'])
     # Image.crop takes a single tuple as parameter
     face_crop = img.crop ((face_box['TL'][0],face_box['TL'][1], face_box['BR'][0],face_box['BR'][1]))
+    if face_crop.size[0] < 60 or face_crop.size[1] < 60:  # too small boxes pose problem
+        print ('--- Face size is too small, skipping... ---')
+        continue    
     stream = io.BytesIO()
     face_crop.save(stream, format="JPEG") 
     bytes = stream.getvalue()
@@ -109,7 +112,7 @@ for face in faces:
         imgdraw.line(points, fill='#d40000', width=2)      
         imgdraw.text((face_box['BL'][0]+2,face_box['BL'][1]+2), name, font=font, fill=(255,255,255))
         imgdraw.text((face_box['BL'][0]+1,face_box['BL'][1]+1), name, font=font, fill=(255,255,255))  
-        imgdraw.text(face_box['BL'], name, font=font, fill=(200,0,0))
+        imgdraw.text(face_box['BL'], name, font=font, fill=(250,0,0))
     print (response)
     print('-'*30)
 
