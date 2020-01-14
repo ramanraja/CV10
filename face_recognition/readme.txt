@@ -24,3 +24,6 @@ Upload all the images recursively to the collection:
 
 Recognize faces present in a target file named test_file_name:
 > python recognizer.py  test_file_name  [collection_name]
+
+To quickly test face detection capabilities:
+> python detect_faces.py  source_file_name   
