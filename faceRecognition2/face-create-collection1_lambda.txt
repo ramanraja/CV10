@@ -1,0 +1,89 @@
+# Lambda for face rekognition image collection setup
+# Supply a collection name and the action (create,delete,describe)
+# curl --location --request GET "https://xxxxxx.execute-api.us-east-2.amazonaws.com/default/face-create-collection1" \
+#   --header "x-collection-id: test_collection" --header "x-action: describe"
+
+import json
+import boto3
+import base64
+
+def make_create_result(collection_id, server_response):
+    print ('Response from server:')
+    print (type(server_response))        
+    print(server_response)
+    result = {}
+    if 'StatusCode' in server_response and server_response['StatusCode'] == 200:
+        result['collection_created'] = 'true'
+        result['collection_id'] = collection_id
+        result['face_model_version'] = server_response['FaceModelVersion']
+    else:    
+        result['collection_created'] = 'false'
+        result['collection_id'] = collection_id
+    return result
+
+def make_delete_result(collection_id, server_response):
+    print ('Response from server:')
+    print (type(server_response))        
+    print(server_response)
+    result = {}
+    if 'StatusCode' in server_response and server_response['StatusCode'] == 200:
+        result['collection_deleted'] = 'true'
+        result['collection_id'] = collection_id
+    else:    
+        result['collection_deleted'] = 'false'
+        result['collection_id'] = collection_id
+    return result
+    
+def make_describe_result(collection_id, server_response):
+    print ('Response from server:')
+    print (type(server_response))        
+    print(server_response)
+    result = {}
+    if 'FaceModelVersion' in server_response:
+        result['collection_exists'] = 'true'
+        result['collection_id'] = collection_id
+        result['face_count'] = server_response['FaceCount']
+        result['face_model_version'] = server_response['FaceModelVersion']
+    else:    
+        result['collection_exists'] = 'false'
+        result['collection_id'] = collection_id
+    return result    
+    
+def lambda_handler(event, context):
+    print("Face-create collection Lambda triggered !")
+    result = {}
+    response = {"result":"dummy"}
+    try:
+        collection_id = 'default_collection'
+        action = 'describe'
+        print('Event: ', event)
+        if 'x-collection-id' in event['headers']:
+            collection_id = event['headers']['x-collection-id']
+        if 'x-action' in event['headers']:
+            action = event['headers']['x-action'].lower()
+        print ('collection id: ', collection_id)
+        print ('action : ', action)
+        client = boto3.client('rekognition')
+        if (action == 'create'):
+            print ('Creating collection..')
+            response = client.create_collection (CollectionId=collection_id) 
+            result = make_create_result(collection_id, response)            
+        elif (action == 'delete'):
+            print ('Deleting collection..')
+            response = client.delete_collection (CollectionId=collection_id)  
+            result = make_delete_result(collection_id, response)
+        else:
+            print ('Returning collection info..')
+            response = client.describe_collection (CollectionId=collection_id)
+            result = make_describe_result(collection_id, response)
+    except Exception as e:
+        print(e)
+        result['error_msg'] = str(e)
+    print (result)
+    #eve = event
+    #eve['body'] = 'image-place-holder'
+    return {
+        'statusCode': 200,
+        'body': json.dumps (result) # (response)  # (eve) 
+    }
+# NOTE: the response from Rekognition contains a DateTime field that cannot be serialized with dumps()

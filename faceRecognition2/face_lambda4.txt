@@ -1,0 +1,46 @@
+# Lambda for face rekognition
+# Takes an input image in raw form from the client (but the API gateway converts it to base64 before calling this lambda)
+# curl --data-binary "@vaidy.png" https://xxxxxx.execute-api.us-east-2.amazonaws.com/default/face_lambda4
+# curl -H "x-collection-id:face_collection1" --data-binary "@tsyu.png" https://xxxxxx.execute-api.us-east-2.amazonaws.com/default/face_lambda4
+import json
+import boto3
+import base64
+
+def lambda_handler(event, context):
+    print("Face Lambda 4 triggered !")
+    result = {}
+    try:
+        print('Image size: ', len(event['body']))
+        collection_id = 'face_collection3'
+        print(event)
+        if 'x-collection-id' in event['headers']:
+            collection_id = event['headers']['x-collection-id']
+        print ('collection id: ', collection_id)
+        client = boto3.client('rekognition')
+        
+        decoded_body = base64.b64decode(event['body'])
+        response = client.search_faces_by_image (CollectionId=collection_id, 
+                                                 Image={"Bytes":decoded_body},
+                                                 MaxFaces=1) 
+        if  len(response['FaceMatches']) > 0:
+            result['match_found'] = 'true'
+            result['collection_id'] = collection_id
+            result['user_id'] = response['FaceMatches'][0]['Face']['ExternalImageId']
+            result['similarity'] = response['FaceMatches'][0]['Similarity']
+            result['confidence'] = response['FaceMatches'][0]['Face']['Confidence']             
+        else:    
+            result['match_found'] = 'false'
+            result['collection_id'] = collection_id            
+            result['user_id'] = 'null'
+            result['similarity'] = 0
+            result['confidence'] = 0  
+    except Exception as e:
+        print(e)
+        result['error_msg'] = str(e)
+    print (result)
+    #eve = event
+    #eve['body'] = 'image-place-holder'
+    return {
+        'statusCode': 200,
+        'body': json.dumps(result) #(eve) 
+    }
